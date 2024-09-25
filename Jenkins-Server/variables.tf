@@ -1,24 +1,19 @@
 variable "vpc_cidr" {
-  description = "cidr value"
+  description = "VPC CIDR"
   type        = string
-
-
 }
 
 variable "public_subnets" {
-  description = "list of public subnets"
+  description = "subnets CIDR"
   type        = list(string)
-
 }
 
-variable "key_name" {
-  description = "keypair value"
+variable "instance_type" {
+  description = "Instance Type"
   type        = string
-
 }
 
-variable "ec2_type" {
-  description = "size for Ec2"
+variable "key_pair" {
+  description = "keypair_value"
   type        = string
-
 }
