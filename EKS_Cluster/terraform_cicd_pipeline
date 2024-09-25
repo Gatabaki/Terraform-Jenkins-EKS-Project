@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+    environment {
+        AWS_ACCESS_KEY_ID     = credentials("aws-access-key")
+        AWS_SECRET_ACCESS_KEY = credentials("aws-secret-access-key")
+        REGION                = "us-east-2"
+    }
+
+    stages {
+        stage('SCM CHECKOUT') {
+            steps {
+                // Check out code from the GitHub repository
+                checkout([
+                    $class: 'GitSCM',
+                    branches: [[name: '*/main']],
+                    doGenerateSubmoduleConfigurations: false,
+                    extensions: [],
+                    userRemoteConfigs: [[url: 'https://github.com/Gatabaki/Terraform-Jenkins-EKS-Project.git']]
+                ])
+            }
+        }
+
+        stage('TERRAFORM INITIALIZING') {
+            steps {
+                script {
+                    // Navigate to the Terraform directory and run terraform init
+                    dir("EKS_Cluster") {
+                        sh 'terraform init'
+                    }
+                }
+            }
+        }
+
+        stage('TERRAFORM VALIDATE') {
+            steps {
+                script {
+                    // Validate the Terraform configuration files
+                    dir("EKS_Cluster") {
+                        sh 'terraform validate'
+                    }
+                }
+            }
+        }
+
+        stage('TERRAFORM PLAN') {
+            steps {
+                script {
+                    // Generate and display the Terraform execution plan
+                    dir("EKS_Cluster") {
+                        sh 'terraform plan -out=tfplan'
+                    }
+                }
+            }
+        }
+
+        stage('Manual Approval') {
+            steps {
+                // Manual approval step before applying the plan
+                input message: 'Do you want to proceed with the Terraform apply?', ok: 'Apply'
+            }
+        }
+
+        stage('TERRAFORM APPLY') {
+            steps {
+                script {
+                    // Apply the Terraform plan to create/update infrastructure
+                    dir("EKS_Cluster") {
+                        sh 'terraform apply -auto-approve tfplan'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        // Always runs cleanup or reporting after stages
+        always {
+            echo "Pipeline completed."
+        }
+        success {
+            echo "Pipeline succeeded!"
+        }
+        failure {
+            echo "Pipeline failed."
+        }
+    }
+}
