@@ -1,12 +1,13 @@
-# VPC
+# VPC MODUE
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
   name = "jenkins-vpc"
   cidr = var.vpc_cidr
 
-  azs            = data.aws_availability_zones.azs.names
-  public_subnets = var.public_subnets
+  azs                     = data.aws_availability_zones.azs.names
+  public_subnets          = var.public_subnets
+  map_public_ip_on_launch = true
 
   enable_dns_hostnames = true
 
@@ -15,34 +16,34 @@ module "vpc" {
     Terraform   = "true"
     Environment = "dev"
   }
+
   public_subnet_tags = {
     Name = "jenkins-subnet"
   }
 }
 
-# SG
-module "sg" {
+# SECURITY GROUP MODULE
+
+module "vote_service_sg" {
   source = "terraform-aws-modules/security-group/aws"
 
   name        = "jenkins-sg"
-  description = "public security group"
+  description = "Security Group for Jenkins server"
   vpc_id      = module.vpc.vpc_id
 
   ingress_with_cidr_blocks = [
-
     {
       from_port   = 8080
       to_port     = 8080
       protocol    = "tcp"
-      description = "HTTTP"
+      description = "HTTP access for Jenkins"
       cidr_blocks = "0.0.0.0/0"
     },
-
     {
       from_port   = 22
       to_port     = 22
       protocol    = "tcp"
-      description = "SSH"
+      description = "SSH access"
       cidr_blocks = "0.0.0.0/0"
     }
   ]
@@ -52,21 +53,28 @@ module "sg" {
       from_port   = 0
       to_port     = 0
       protocol    = "-1"
+      description = "Allow all outbound traffic"
       cidr_blocks = "0.0.0.0/0"
     }
   ]
+
+  tags = {
+    Name = "jenkins-sg"
+  }
+
 }
 
 # EC2
+
 module "ec2_instance" {
   source = "terraform-aws-modules/ec2-instance/aws"
 
-  name = "Jenkins-Server"
+  name = "jenkins-server"
 
-  instance_type               = var.ec2_type
-  key_name                    = var.key_name
+  instance_type               = var.instance_type
+  key_name                    = var.key_pair
   monitoring                  = true
-  vpc_security_group_ids      = [module.sg.security_group_id]
+  vpc_security_group_ids      = [module.vote_service_sg.security_group_id]
   subnet_id                   = module.vpc.public_subnets[0]
   associate_public_ip_address = true
   user_data                   = file("jenkins-install.sh")
@@ -78,6 +86,3 @@ module "ec2_instance" {
     Environment = "dev"
   }
 }
-
-
-# Pushing to the limit just push
