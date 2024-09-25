@@ -1,7 +1,7 @@
 terraform {
   backend "s3" {
-    bucket = "gatabaki-terraform-eks-project"
-    key    = "eks/terraform.tfstate"
+    bucket = "eks-cluster-backened-store101"
+    key    = "eks-cluster-backened/terraform.tfstate"
     region = "us-east-2"
   }
 }
